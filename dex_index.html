@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.line {
+  stroke-width: 1.5px;
+  fill: none;
+}
+
+.area {
+  fill-opacity: .3;
+}
+
+.outline {
+  fill: none;
+  stroke: black;
+  stroke-width: 1px;
+  rx: 5px;
+}
+
+.legendTitle {
+  text-anchor: middle;
+}
+
+.legendItem rect {
+  height: 20px;
+  width: 20px;
+  stroke: none;
+  fill-opacity: .7;
+}
+
+.mainTitle {
+  text-anchor: middle;
+  font: 28px sans-serif;
+}
+
+
+</style>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+<script>
+
+var data = [
+  {"key": "Charges", "values": [
+    {'name': 0, 'value': 3, 'lb': 2, 'ub': 4},
+    {'name': 1, 'value': 4.5, 'lb': 3, 'ub': 6},
+    {'name': 2, 'value': 6.5, 'lb': 5, 'ub': 8},
+    {'name': 3, 'value': 12.5, 'lb': 10, 'ub': 15},
+    {'name': 4, 'value': 13, 'lb': 11, 'ub': 16},
+    {'name': 5, 'value': 19, 'lb': 14, 'ub': 23},
+    {'name': 6, 'value': 39, 'lb': 37, 'ub': 42}
+  ]},
+  {"key": "Payment ratio", "values": [
+    {'name': 0, 'value': 22, 'lb': 20, 'ub': 24},
+    {'name': 1, 'value': 17, 'lb': 15, 'ub': 19},
+    {'name': 2, 'value': 11, 'lb': 10, 'ub': 12},
+    {'name': 3, 'value': 9, 'lb': 8, 'ub': 10},
+    {'name': 4, 'value': 13, 'lb': 11, 'ub': 15},
+    {'name': 5, 'value': 27, 'lb': 23, 'ub': 30},
+    {'name': 6, 'value': 39, 'lb': 35, 'ub': 42}
+  ]},
+  {"key": "Payments", "values": [
+    {'name': 0, 'value': 35, 'lb': 33, 'ub': 37},
+    {'name': 1, 'value': 31, 'lb': 29, 'ub': 33},
+    {'name': 2, 'value': 22, 'lb': 20, 'ub': 24},
+    {'name': 3, 'value': 15, 'lb': 13, 'ub': 17},
+    {'name': 4, 'value': 13, 'lb': 11, 'ub': 16},
+    {'name': 5, 'value': 9, 'lb': 7, 'ub': 11},
+    {'name': 6, 'value': 7, 'lb': 5, 'ub': 9}
+  ]}
+];
+
+var margin = {top: 40, right: 20, bottom: 30, left: 50},
+    svgWidth = 1000 - margin.left - margin.right,
+    svgHeight = 600 - margin.top - margin.bottom,
+  chartWidth = 750,
+  chartHeight = 400;
+
+var xVar = "name",
+    yVar = "value",
+    lower = "lb",
+    upper = "ub";
+  
+var x = d3.scale.linear()
+    .domain([0, d3.max(data, function(d) { return d3.max(d.values, function(v) { return v[xVar]; }); }) ])
+    .range([0, chartWidth]);
+
+var y = d3.scale.linear()
+    .domain([
+      d3.min(data, function(d) { return d3.min(d.values, function(v) { return v[lower]; }); }), 
+      d3.max(data, function(d) { return d3.max(d.values, function(v) { return v[upper]; }); })
+    ])
+    .range([chartHeight, 0]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+
+var yAxis = d3.svg.axis()
+    .scale(y)
+    .orient("left");
+
+var area = d3.svg.area()
+    .interpolate("basis")
+    .x(function(d) { return x(d[xVar]); })
+    .y0(function(d) { return y(d[lower]); })
+    .y1(function(d) { return y(d[upper]); });
+
+var line = d3.svg.line()
+    .interpolate("basis")
+    .x(function(d) { return x(d[xVar]); })
+    .y(function(d) { return y(d[yVar]); });
+  
+var color = d3.scale.category10();
+
+/*
+Alternatively:
+function color(c) {
+  switch(c) {
+    case "line1": return "steelblue"; break;
+    case "line2": return "orange"; break;
+    case "line3": return "green"; break;
+    default: return "purple";
+  }
+};
+*/
+
+var svg = d3.select("body").append("svg")
+    .attr("width", svgWidth + margin.left + margin.right)
+    .attr("height", svgHeight + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var set = svg.selectAll(".set")
+    .data(data)
+  .enter().append("g")
+    .attr("class", "set");
+  
+set.append("path")
+    .attr("class","area")
+    .attr("d", function(d) {return area(d.values);})
+    .attr("fill", function(d) { return color(d.key); });
+  
+set.append("path")
+    .attr("class", "line")
+    .attr("stroke", function(d) { return d3.rgb(color(d.key)).darker(); })
+    .attr("d", function(d) {return line(d.values);});
+  
+// Draw x-axis
+svg.append("g")
+    .attr("class", "x axis")
+    .attr("transform", "translate(0," + chartHeight + ")")
+    .call(xAxis)
+  .append("text")
+    .attr("dx", chartWidth/2)
+    .attr("dy", 30)
+    .style("text-anchor", "middle")
+    .text("X Title (units)");
+  
+// Draw y-axis
+svg.append("g")
+    .attr("class", "y axis")
+    .call(yAxis)
+  .append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("dx", -chartHeight/2)
+    .attr("dy", -30)
+    .style("text-anchor", "middle")
+    .text("Y title (units)");
+  
+// Add a title
+svg.append("text")
+    .attr("class", "mainTitle")
+  .attr("transform", "translate(" + (chartWidth/2) + ",0)")
+  .text("Sample chart for making legends");
+  
+// Draw legends
+var bottomLegendWidth = 300;
+var bottomLegend = svg.append("g")
+    .attr("class", "legend")
+  .attr("transform", "translate(" + (chartWidth/2 - bottomLegendWidth/2) + ",450)");
+  
+  //bottomLegend.append("rect")
+    //.attr("class", "outline")
+//.attr("width", bottomLegendWidth)
+  //.attr("height", "40");
+
+ // bottomLegend.append("text")
+   // .attr("class", "legendTitle")
+    //.attr("transform", "translate(" + (bottomLegendWidth/2) + ",15)")
+    //.text("Legend");
+
+var bottomLegendItem = bottomLegend.selectAll(".legendItem")
+      .data(data)
+    .enter().append("g")
+      .attr("class", "legendItem")
+    .attr("transform", function(d, i) { return "translate(" + (i * 100 + 12) + ",10)" });
+    
+  bottomLegendItem.append("rect")
+      .attr("fill", function(d) { return color(d.key); })
+    
+  bottomLegendItem.append("text")
+      .attr("transform", "translate(27,13)")
+      .text(function(d) { return d.key; })
+  
+var sideLegend = svg.append("g")
+    .attr("class", "legend")
+  .attr("transform", "translate(" + (chartWidth + 50) + ",100)")
+  
+  sideLegend.append("rect")
+    .attr("class", "outline")
+  .attr("width", "110px")
+  .attr("height", "130px")
+
+  //sideLegend.append("text")
+    //.attr("class", "legendTitle")
+    //.attr("transform", "translate(50,15)")
+   // .text("Legend ");
+
+var sideLegendItem = sideLegend.selectAll(".legendItem")
+      .data(data)
+    .enter().append("g")
+      .attr("class", "legendItem")
+    .attr("transform", function(d, i) { return "translate(10," + (i * 40 + 15) + ")" });
+    
+  sideLegendItem.append("rect")
+      .attr("fill", function(d) { return color(d.key); });
+    
+  sideLegendItem.append("text")
+      .attr("transform", "translate(27,13)")
+      .text(function(d) { return d.key; });
+
+</script>
